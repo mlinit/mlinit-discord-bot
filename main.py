@@ -1,6 +1,5 @@
 import os
 import discord
-import asyncio
 import math
 
 import pandas as pd
@@ -11,6 +10,7 @@ from dotenv import load_dotenv
 from analysis import utils
 from analysis import describe
 from analysis import outliers
+from analysis import contents
 
 # token for dc bot
 load_dotenv()
@@ -22,9 +22,44 @@ COLS_PER_PAGE = 7
 INFORMATION_THUMBNAIL_URL = "https://i.imgur.com/KY5QcLw.jpg"
 SUMMARY_THUMBNAIL_URL = "https://i.imgur.com/P1ZNLBa.jpg"
 OUTLIERS_THUMBNAIL_URL = "https://i.imgur.com/FmNH0qi.jpg"
+DUPLICATES_THUMBNAIL_URL = "https://i.imgur.com/NMDm8A2.jpg"
+ICON_URL = "https://i.imgur.com/E7Ppwmj.png"
 
 
 bot = commands.Bot(command_prefix="?", intents=discord.Intents.all())
+
+class MyHelp(commands.HelpCommand):
+    async def send_bot_help(self, mapping):
+        embed = discord.Embed(title="need some help?", color=discord.Color.dark_teal())
+        for _, commands in mapping.items():
+            command_signatures = [self.get_command_signature(c) for c in commands]
+            if command_signatures:
+                # cog_name = getattr(cog, "qualified_name", "list of commands")
+                val = contents.get_general_help()
+                embed.add_field(name="", value=val, inline=False)
+                embed.set_author(name="🤖 mLinit")
+                embed.set_footer(text="sent by MLinit", icon_url=ICON_URL)
+        
+        channel = self.get_destination()
+        await channel.send(embed=embed)
+        
+    async def send_command_help(self, command):
+        command_name = self.get_command_signature(command)
+        command_name = command_name.split(' ')[0][1:]
+        embed = discord.Embed(
+            title=f"help for **{command_name}**",
+            color=discord.Color.dark_teal()
+        )
+        
+        if command.help:
+            embed.description = command.help
+            embed.set_author(name="🤖 mLinit")
+            embed.set_footer(text="sent by mLinit", icon_url=ICON_URL)
+        
+        channel = self.get_destination()
+        await channel.send(embed=embed)
+
+bot.help_command = MyHelp()
 
 
 @bot.event
@@ -50,7 +85,7 @@ def get_page_buttons():
     
 
 # ------------------ INFORMATION ----------------------
-@bot.command(name="info")
+@bot.command(name="info", help=contents.get_info_help())
 async def information(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
     resp.name = url.split("/")[-1]
@@ -68,11 +103,11 @@ async def information(ctx, url: str, user: discord.User):
         
         for i in range(num_bins):
             embed = discord.Embed(
-                title="**dataset information** 📝",
-                description=f"here is the information related to\nthe dataset _{resp.name}_\n\nit contains **{rows}** rows and **{len(feats)}** columns\n\n{'⎯'*10}\n",
+                title="**dataset information** ℹ️",
+                description=f"here is the information related to the dataset _{resp.name}_\nit contains **{rows}** rows and **{len(feats)}** columns\n\n{'⎯'*10}\n‎‎ ",
                 color=discord.Color.dark_teal()
             )
-            for j, fe in enumerate(feats[7*i: 7*(i+1)]):
+            for j, fe in enumerate(feats[COLS_PER_PAGE*i: COLS_PER_PAGE*(i+1)]):
                 ind = COLS_PER_PAGE*i + j
                 embed.add_field(
                     name=f"✅ **{fe}**",
@@ -83,8 +118,8 @@ async def information(ctx, url: str, user: discord.User):
             embed.add_field(name=f"📚 Memory usage", value=f"{str(memuse)}", inline=True)       
         
             embed.set_thumbnail(url=INFORMATION_THUMBNAIL_URL)
-            embed.set_author(name="🤖 MLinit")
-            embed.set_footer(text="analyzed by MLinit")
+            embed.set_author(name="🤖 mLinit")
+            embed.set_footer(text="analyzed by mLinit", icon_url=ICON_URL)
             info_embed_pages.append(embed)
             
         info_paginator = pages.Paginator(
@@ -107,7 +142,7 @@ async def info_error(ctx, err):
 
 
 # --------------------- DESCRIPTION ----------------------
-@bot.command(name="des")
+@bot.command(name="des", help=contents.get_des_help())
 async def description(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
     resp.name = url.split("/")[-1]
@@ -126,10 +161,10 @@ async def description(ctx, url: str, user: discord.User):
         for i in range(num_bins):
             embed = discord.Embed(
                 title="**dataset summary** 📝",
-                description=f"here is the summary related to\nthe dataset _{resp.name}_'s features\n\nit shows the statistical measures of **{len(feats)}** columns\n\n{'⎯'*10}\n",
+                description=f"here is the summary related to the dataset _{resp.name}_'s features\nit shows the statistical measures of **{len(feats)}** columns\n\n{'⎯'*10}\n‎‎ ",
                 color=discord.Color.dark_teal()
             )
-            for j, fe in enumerate(feats[7*i: 7*(i+1)]):
+            for j, fe in enumerate(feats[COLS_PER_PAGE*i: COLS_PER_PAGE*(i+1)]):
                 ind = COLS_PER_PAGE*i + j
                 val = f"• count: {count[ind]}\n"
                 val = val + f"• unique: {uniq[ind]}\n" if not pd.isnull(uniq[ind]) else val
@@ -150,8 +185,8 @@ async def description(ctx, url: str, user: discord.User):
                 )      
         
             embed.set_thumbnail(url=SUMMARY_THUMBNAIL_URL)
-            embed.set_author(name="🤖 MLinit")
-            embed.set_footer(text="analyzed by MLinit")
+            embed.set_author(name="🤖 mLinit")
+            embed.set_footer(text="analyzed by mLinit")
             summ_embed_pages.append(embed)
             
         info_paginator = pages.Paginator(
@@ -174,27 +209,27 @@ async def des_error(ctx, err):
 
 
 # ------------------------- DUPLICATES -------------------------------
-@bot.command(name="dup")
+@bot.command(name="dup", help=contents.get_dup_help())
 async def duplicates(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
-    resp.name = url.split("/")[-1]
     
     if isinstance(resp, str):
         await ctx.reply(resp)
     else:
+        resp.name = url.split("/")[-1]  
         des = describe.Describe(resp)
         duprows, dupcols = des.perform_dupl()
         
         await ctx.reply(f"analyzing your data 🔃")
         embed = discord.Embed(
             title="**duplicates in the dataset** ✌🏻",
-            description=f"here is the information related to\nthe duplicate rows in the dataset _{resp.name}_\n\n{'⎯'*10}\n",
+            description=f"here is the information related to the duplicate rows in the dataset _{resp.name}_\n\n{'⎯'*10}\n‎‎ ",
             color=discord.Color.dark_teal()
         )
         
         embed.add_field(
             name=f"✅ original dataset has",
-            value=f"• {resp.shape[0]} rows and {resp.shape[1]} columns",
+            value=f"• **{resp.shape[0]}** rows and **{resp.shape[1]}** columns",
             inline=False
         )
         embed.add_field(
@@ -204,13 +239,13 @@ async def duplicates(ctx, url: str, user: discord.User):
         )
         embed.add_field(
             name="",
-            value=f"\nafter removing the duplicate rows, dataset shape will be\n**{resp.shape[0] - duprows}** X **{len(dupcols)}**\n",
+            value=f"\nafter removing the duplicate rows, dataset shape will be\n```{resp.shape[0] - duprows} rows x {len(dupcols)} columns```‎‎ ",
             inline=False
         )
         
-        embed.set_thumbnail(url=SUMMARY_THUMBNAIL_URL)
-        embed.set_author(name="🤖 MLinit")
-        embed.set_footer(text="analyzed by MLinit")
+        embed.set_thumbnail(url=DUPLICATES_THUMBNAIL_URL)
+        embed.set_author(name="🤖 mLinit")
+        embed.set_footer(text="analyzed by mLinit", icon_url=ICON_URL)
         
         await ctx.send(f"{user.mention} check your DM for the result ✔️")
         await user.send(embed=embed)
@@ -236,11 +271,13 @@ class OutlierView(discord.ui.View):
         options=[
             discord.SelectOption(
                 label="z-score",
-                description="choose this for analyzing outliers using z-score"
+                description="choose this for analyzing outliers using z-score",
+                emoji="♎"
             ),
             discord.SelectOption(
                 label="quantile",
-                description="choose this for analyzing outliers using quantiles"
+                description="choose this for analyzing outliers using quantiles",
+                emoji="📦"
             )
         ]
     )
@@ -257,7 +294,7 @@ class OutlierView(discord.ui.View):
             for i in range(num_bins):
                 embed = discord.Embed(
                     title="**dataset outliers using Z-SCORE** 🚫",
-                    description=f"here are the outliers related to\nthe dataset _{self.df.name}_'s features\n\nit shows the outlier numbers of **{len(feats)}** columns using the **Z-score** test\n\n{'⎯'*10}\n",
+                    description=f"here are the outliers related to the dataset _{self.df.name}_'s features\nit shows the outlier numbers of **{len(feats)}** columns using the **Z-score** test\n\n{'⎯'*10}\n‎‎ ",
                     color=discord.Color.dark_teal()
                 )
                 for j, fe in enumerate(feats[COLS_PER_PAGE*i: COLS_PER_PAGE*(i+1)]):
@@ -269,8 +306,49 @@ class OutlierView(discord.ui.View):
                     )
                     
                 embed.set_thumbnail(url=OUTLIERS_THUMBNAIL_URL)
-                embed.set_author(name="🤖 MLinit")
-                embed.set_footer(text="analyzed by MLinit")
+                embed.set_author(name="🤖 mLinit")
+                embed.set_footer(text="analyzed by mLinit", icon_url=ICON_URL)
+                out_embed_pages.append(embed)
+                
+            out_paginator = pages.Paginator(
+                pages=out_embed_pages,
+                show_disabled=True,
+                show_indicator=True,
+                use_default_buttons=False,
+                custom_buttons=get_page_buttons(),
+                loop_pages=True,
+            )
+            
+            t_msg = f"{self.user.mention} check your DM for the result ✔️"
+            await out_paginator.send(self.ctx, target=self.user, target_message=t_msg)
+            await interaction.response.defer()
+
+        if select.values[0] == "quantile":
+            out = outliers.Outliers(self.df)
+            feats, lower_outs, upper_outs = out.perform_quantile_out()
+            
+            out_embed_pages = []
+            num_bins = math.ceil(len(feats) / COLS_PER_PAGE)
+        
+            await self.ctx.reply(f"analyzing your data 🔃")
+        
+            for i in range(num_bins):
+                embed = discord.Embed(
+                    title="**dataset outliers using Quantiles** 🚫",
+                    description=f"here are the outliers related to the dataset _{self.df.name}_'s features\nit shows the outlier numbers of **{len(feats)}** columns using the **Quantiles** test\n\n{'⎯'*10}\n‎‎ ",
+                    color=discord.Color.dark_teal()
+                )
+                for j, fe in enumerate(feats[COLS_PER_PAGE*i: COLS_PER_PAGE*(i+1)]):
+                    ind = COLS_PER_PAGE*i + j
+                    embed.add_field(
+                        name=f"✅ **{fe}**",
+                        value=f"• {lower_outs[ind]} lower outlier(s)\n• {upper_outs[ind]} upper outlier(s)",
+                        inline=False
+                    )
+                    
+                embed.set_thumbnail(url=OUTLIERS_THUMBNAIL_URL)
+                embed.set_author(name="🤖 mLinit")
+                embed.set_footer(text="analyzed by mLinit", icon_url=ICON_URL)
                 out_embed_pages.append(embed)
                 
             out_paginator = pages.Paginator(
@@ -287,7 +365,7 @@ class OutlierView(discord.ui.View):
             await interaction.response.defer()
 
 
-@bot.command(name="out")
+@bot.command(name="out", help=contents.get_out_help())
 async def outliers_analysis(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
     resp.name = url.split("/")[-1]
@@ -295,8 +373,13 @@ async def outliers_analysis(ctx, url: str, user: discord.User):
     if isinstance(resp, str):
         await ctx.reply(resp)
     else:
-        await ctx.reply("alright! tell me the method", view=OutlierView(ctx, user, resp))
+        await ctx.reply("cool, tell me the method", view=OutlierView(ctx, user, resp))
 
+
+@outliers_analysis.error
+async def out_error(ctx, err):
+    if isinstance(err, commands.errors.MissingRequiredArgument):
+        await ctx.reply("bruh, missing arguments for this command 🤨")
 
 # driver code
 bot.run(TOKEN)

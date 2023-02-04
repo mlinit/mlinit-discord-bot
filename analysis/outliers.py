@@ -11,11 +11,8 @@ def z_score_out(df, col):
     
     return num_outliers
 
-def quant_out(df, col):
-    pass
 
 # -------------------------------------------------------
-
 class Outliers:
     """
         all the dataset outliers for each column
@@ -25,12 +22,7 @@ class Outliers:
         
         df: dataframe under consideration
     """
-    def __init__(self, df):
-        self.out_str = ""
-        self.zscore = []
-        self.lowquan = []
-        self.highquan = []
-        
+    def __init__(self, df):        
         self.df = df
         
     def perform_zscore_out(self):
@@ -63,7 +55,7 @@ class Outliers:
         
         for i, feat in enumerate(num_features):
             q1 = self.df[feat].quantile(q=0.25)
-            q3 = self.df[feat].quantile()
+            q3 = self.df[feat].quantile(q=0.75)
             # interquantile range
             iqr = q3 - q1
             

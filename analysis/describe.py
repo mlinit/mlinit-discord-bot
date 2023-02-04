@@ -93,15 +93,7 @@ class Describe:
         null = list(self.df.isnull().sum())
         dtypes = list(self.df.dtypes)
         
-        for i in range(len(features)):
-            self.info_str += '✅ ' + features[i] + '\n'
-            self.info_str += '\t\t• ' + str(null[i]) + " null values\n"
-            self.info_str += '\t\t• ' + str(dtypes[i]) + '\n'
-        
-        # info_table = makeTable(headers, [features, null, dtypes], columnSpacing=5)
         mem_use = self.total_memory_usage()
-        self.info_str += '\n' + "memory usage: " + mem_use
-        
         return (rows, features, null, dtypes, mem_use)
         
         
