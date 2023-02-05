@@ -283,6 +283,8 @@ class OutlierView(discord.ui.View):
     )
     async def out_callback(self, select, interaction: discord.Interaction):
         if select.values[0] == "z-score":
+            await interaction.response.defer()
+            
             out = outliers.Outliers(self.df)
             feats, zouts = out.perform_zscore_out()
             
@@ -320,10 +322,10 @@ class OutlierView(discord.ui.View):
             )
             
             t_msg = f"{self.user.mention} check your DM for the result ✔️"
-            await out_paginator.send(self.ctx, target=self.user, target_message=t_msg)
-            await interaction.response.defer()
+            await out_paginator.send(self.ctx, target=self.user, target_message=t_msg)            
 
         if select.values[0] == "quantile":
+            await interaction.response.defer()
             out = outliers.Outliers(self.df)
             feats, lower_outs, upper_outs = out.perform_quantile_out()
             
@@ -362,7 +364,6 @@ class OutlierView(discord.ui.View):
             
             t_msg = f"{self.user.mention} check your DM for the result ✔️"
             await out_paginator.send(self.ctx, target=self.user, target_message=t_msg)
-            await interaction.response.defer()
 
 
 @bot.command(name="out", help=contents.get_out_help())
