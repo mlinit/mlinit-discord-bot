@@ -28,6 +28,12 @@ use this command to find the number of outliers in each column of the dataset us
 
 for more, type:
 ```<bot-prefix>help out```
+
+• **corr**
+use this command to find the linear correlation between features
+
+for more, type:
+```<bot-prefix>help corr```
         
     """
     
@@ -107,6 +113,26 @@ def get_out_help() -> str:
         this command uses well known methods like **z-score** and **quantile ranges** test to find the outliers.
         
         lower (25%) and upper outliers (75%) are calculated using interquantile ranges.
+    """
+    
+    return helpstr
+
+def get_corr_help() -> str:
+    helpstr = f"""
+    
+        usage:
+        
+        ```<bot_prefix>corr <dataset_url> <user>```
+        
+        calculate the correlation between features of a dataset.
+        
+        required parameters:
+        • **dataset_url**: the discord CDN URL of an uploaded CSV file
+        • **user**: the user to send the analysis to 
+        
+        this command finds the **linear correlation matrix** between features of a dataset.
+        
+        it then sends the matrix, represented as a **heatmap**, to the user.
     """
     
     return helpstr

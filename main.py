@@ -11,6 +11,7 @@ from analysis import utils
 from analysis import describe
 from analysis import outliers
 from analysis import contents
+from analysis import correlation
 
 # token for dc bot
 load_dotenv()
@@ -28,6 +29,7 @@ ICON_URL = "https://i.imgur.com/E7Ppwmj.png"
 
 bot = commands.Bot(command_prefix="?", intents=discord.Intents.all())
 
+# ------------------ CUSTOM HELP ------------------------------
 class MyHelp(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         embed = discord.Embed(title="need some help?", color=discord.Color.dark_teal())
@@ -62,12 +64,14 @@ class MyHelp(commands.HelpCommand):
 bot.help_command = MyHelp()
 
 
+
+# ----------------- BOT READY -----------------------------
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
     
 
-# -------------------- Helpers -----------------------------
+# -------------------- UI HELPERS -----------------------------
 def get_page_buttons():
     page_buttons = [
         pages.PaginatorButton(
@@ -88,11 +92,11 @@ def get_page_buttons():
 @bot.command(name="info", help=contents.get_info_help())
 async def information(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
-    resp.name = url.split("/")[-1]
          
     if isinstance(resp, str):
         await ctx.reply(resp)
     else:    
+        resp.name = url.split("/")[-1]
         des = describe.Describe(resp)
         rows, feats, null, dtypes, memuse = des.perform_info()
         
@@ -145,11 +149,11 @@ async def info_error(ctx, err):
 @bot.command(name="des", help=contents.get_des_help())
 async def description(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
-    resp.name = url.split("/")[-1]
          
     if isinstance(resp, str):
         await ctx.reply(resp)
     else:
+        resp.name = url.split("/")[-1]
         des = describe.Describe(resp)
         _, feats, count, uniq, top, freq, mean, std, mini, q25, q50, q75, maxi = des.perform_summ()
         
@@ -369,11 +373,11 @@ class OutlierView(discord.ui.View):
 @bot.command(name="out", help=contents.get_out_help())
 async def outliers_analysis(ctx, url: str, user: discord.User):
     resp = utils.read_dataset_from_url(url)
-    resp.name = url.split("/")[-1]
     
     if isinstance(resp, str):
         await ctx.reply(resp)
     else:
+        resp.name = url.split("/")[-1]
         await ctx.reply("cool, tell me the method", view=OutlierView(ctx, user, resp))
 
 
@@ -381,6 +385,38 @@ async def outliers_analysis(ctx, url: str, user: discord.User):
 async def out_error(ctx, err):
     if isinstance(err, commands.errors.MissingRequiredArgument):
         await ctx.reply("bruh, missing arguments for this command 🤨")
+
+
+# ------------------ CORRELATION ----------------------------
+@bot.command(name="corr", help=contents.get_corr_help())
+async def correlation_analysis(ctx, url: str, user: discord.User):
+    resp = utils.read_dataset_from_url(url)
+    
+    if isinstance(resp, str):
+        await ctx.reply(resp)
+    else:
+        resp.name = url.split("/")[-1]
+        await ctx.reply(f"analyzing your data 🔃")
+        
+        corr = correlation.Correlation(resp)
+        corr_buff = corr.perform_corr()
+        
+        await ctx.send(f"{user.mention} check your DM for the result ✔️")
+        
+        t_msg = f"**correlation matrix for {resp.name}** 🪢"
+        await user.send(
+            t_msg,
+            file=discord.File(fp=corr_buff, filename=f"{resp.name[:-4]}_correlation.png")
+        )
+        
+        # sloppy coding...close the buffer here
+        corr_buff.close()
+
+@correlation_analysis.error
+async def corr_error(ctx, err):
+    if isinstance(err, commands.errors.MissingRequiredArgument):
+        await ctx.reply("bruh, missing arguments for this command 🤨")
+
 
 # driver code
 bot.run(TOKEN)
