@@ -186,7 +186,7 @@ async def description(ctx, url: str, user: discord.User):
         
             embed.set_thumbnail(url=SUMMARY_THUMBNAIL_URL)
             embed.set_author(name="🤖 mLinit")
-            embed.set_footer(text="analyzed by mLinit")
+            embed.set_footer(text="analyzed by mLinit", icon_url=ICON_URL)
             summ_embed_pages.append(embed)
             
         info_paginator = pages.Paginator(
