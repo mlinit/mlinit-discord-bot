@@ -19,7 +19,7 @@ class Describe:
         
     def total_memory_usage(self) -> str:
         mem_use = self.df.memory_usage(deep=True).sum()
-        mem_use_str = str(mem_use / 1000) + " MB"
+        mem_use_str = str(mem_use / 1000000) + " MB"
         return mem_use_str
     
     
